@@ -4,7 +4,7 @@
 
 This project aims to implement a machine vision system that enables an ABB robot to autonomously identify, pick, and place selected objects using a camera. The robot is guided by visual input to locate the target object and move it to a designated location, demonstrating the integration of computer vision and robotic control.
 
-![Demo of Project](demo.gif)
+![Demo of Project](./demo.gif)
 
 ### What Was Implemented
 
