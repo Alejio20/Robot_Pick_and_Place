@@ -1,0 +1,106 @@
+MODULE ServerCommuncation(SYSMODULE)
+VAR socketdev clientSocket;
+VAR socketdev serverSocket;
+VAR num retry_no := 0;
+
+
+
+    !//Example code
+    
+    ! VAR string receivedString;   !//Received string
+    ! VAR string sendString;       !//Reply string
+    !//Koppla up server.
+    ! ServerCreateAndConnect ipController,serverPort;	
+  
+    !//Väntar på order/Svar from PC Funktion returns a string
+    !ReciveMessage();
+    
+    ! //Skicka svar till PC
+    ! SendMessage ("test"); OR SendMessage "test"; 
+    
+    !//Closing the server
+    ! ServerCloseAndDisconnect
+    
+    
+   
+    
+  PROC ServerCreateAndConnect()
+    ! Handshake between server and client:
+    ! - Creates socket.
+    ! - Waits for incoming TCP connection.
+    VAR string clientIP;
+    
+    VAR string ipController:= "192.168.125.205";  !PERS string ipController:= "192.168.125.1"; !robot default IP
+    VAR num serverPort:= 5000;
+    !TPErase;
+    SocketCreate serverSocket;
+    SocketBind serverSocket, ipController, serverPort;
+    SocketListen serverSocket;
+    TPWrite "SERVER: Server waiting for incoming connections ...";
+    WHILE SocketGetStatus(clientSocket) <> SOCKET_CONNECTED DO
+        SocketAccept serverSocket,clientSocket \ClientAddress:=clientIP \Time:=WAIT_MAX;
+        IF SocketGetStatus(clientSocket) <> SOCKET_CONNECTED THEN
+            TPWrite "SERVER: Problem serving an incoming connection.";
+            TPWrite "SERVER: Try reconnecting.";
+        ENDIF
+        !//Wait 0.5 seconds for the next reconnection
+        WaitTime 0.5;
+    ENDWHILE
+    TPWrite "SERVER: Connected to IP " + clientIP;
+  ENDPROC
+
+  PROC ServerCloseAndDisconnect ()
+    !Handshake between server and client:
+    ! - Close socket.
+    SocketClose clientSocket;
+    SocketClose serverSocket; 
+    TPWrite "SERVER: Connection Closed .";
+  ENDPROC  
+
+  PROC ClientCreateAndConnect()
+    SocketCreate clientSocket;
+    SocketConnect clientSocket, "192.168.125.205", 5000;
+    ERROR
+
+    IF ERRNO = ERR_SOCK_TIMEOUT THEN
+
+        
+    IF retry_no < 5 THEN
+
+    WaitTime 1;
+    
+    retry_no := retry_no + 1;
+    
+    RETRY;
+    
+    ELSE
+    
+    RAISE;
+    
+    ENDIF
+    
+    ENDIF
+
+
+
+  ENDPROC
+  
+
+  PROC SendMessage(string Message)
+    ! Skicka svar till PC
+    IF SocketGetStatus(clientSocket) = SOCKET_CONNECTED THEN
+       SocketSend clientSocket \Str:=Message;
+	ENDIF    
+  ENDPROC
+
+  Func String ReciveMessage()
+    ! Väntar och retunerar ett svar i form av en string
+VAR string ReceivedString;
+    IF SocketGetStatus(clientSocket) = SOCKET_CONNECTED THEN
+        SocketReceive clientSocket \Str:=ReceivedString \Time:=WAIT_MAX;
+        !TPWrite ReceivedString;		
+	RETURN ReceivedString;
+    ENDIF  
+  ENDFUNC
+    
+ENDMODULE
